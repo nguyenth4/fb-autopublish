@@ -85,7 +85,7 @@ export async function createPostAction(
   await prisma.post.update({
     where: { id: post.id },
     data: {
-      bullmqJobId: job.id,
+      bullmqJobId: job.id ?? null,
       status: scheduledAt ? 'SCHEDULED' : 'DRAFT',
     },
   })
