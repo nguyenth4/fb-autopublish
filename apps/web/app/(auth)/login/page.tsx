@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { LoginForm } from '@/components/auth/login-form'
 
 export default function LoginPage() {
@@ -10,7 +11,9 @@ export default function LoginPage() {
             Facebook Page Auto-Publishing
           </p>
         </div>
-        <LoginForm />
+        <Suspense fallback={<div className="h-40 flex items-center justify-center text-sm text-muted-foreground">Đang tải...</div>}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   )
