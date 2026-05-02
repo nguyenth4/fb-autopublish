@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  STAFF_CONTENT
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHING   // Worker acquired — idempotency lock, prevents double-post
+  PUBLISHED
+  FAILED
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+// ─────────────────────────────────────────────────────────
+// USER & AUTH
+// ─────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         Role     @default(STAFF_CONTENT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pageAccesses UserPageAccess[]
+  posts        Post[]
+  templates    PostTemplate[]
+  sessions     Session[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ─────────────────────────────────────────────────────────
+// FACEBOOK PAGES
+// encryptedAccessToken format: "iv_hex:ciphertext_hex" (AES-256-CBC)
+// NEVER store plaintext tokens
+// ─────────────────────────────────────────────────────────
+
+model FacebookPage {
+  id                   String    @id @default(cuid())
+  fbPageId             String    @unique
+  name                 String
+  category             String?
+  pictureUrl           String?
+  encryptedAccessToken String    @db.Text
+  tokenExpiresAt       DateTime?
+  isActive             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  userAccesses UserPageAccess[]
+  posts        Post[]
+
+  @@index([fbPageId])
+  @@map("facebook_pages")
+}
+
+model UserPageAccess {
+  id          String       @id @default(cuid())
+  userId      String
+  pageId      String
+  canPost     Boolean      @default(true)
+  canSchedule Boolean      @default(false)
+  grantedAt   DateTime     @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  page FacebookPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pageId])
+  @@map("user_page_accesses")
+}
+
+// ─────────────────────────────────────────────────────────
+// POSTS
+// scheduledAt: always UTC in DB — client appends TZ offset before sending
+// mediaUrls: String[] stored as JSON
+// message: full text + hashtags combined (FB image posts have no "title" field)
+// ─────────────────────────────────────────────────────────
+
+model Post {
+  id          String     @id @default(cuid())
+  pageId      String
+  authorId    String
+  message     String     @db.Text
+  mediaUrls   Json
+  status      PostStatus @default(DRAFT)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  fbPostId    String?
+  bullmqJobId String?
+  templateId  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  page     FacebookPage  @relation(fields: [pageId], references: [id])
+  author   User          @relation(fields: [authorId], references: [id])
+  template PostTemplate? @relation(fields: [templateId], references: [id])
+  jobLogs  JobLog[]
+
+  @@index([pageId, status])
+  @@index([scheduledAt, status])
+  @@index([authorId])
+  @@map("posts")
+}
+
+// ─────────────────────────────────────────────────────────
+// TEMPLATES
+// ─────────────────────────────────────────────────────────
+
+model PostTemplate {
+  id        String   @id @default(cuid())
+  authorId  String
+  name      String
+  message   String   @db.Text
+  hashtags  String?  @db.Text
+  mediaUrls Json
+  isGlobal  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User   @relation(fields: [authorId], references: [id])
+  posts  Post[]
+
+  @@index([authorId])
+  @@map("post_templates")
+}
+
+// ─────────────────────────────────────────────────────────
+// JOB LOGS
+// Every worker attempt (including retries) writes one row
+// ─────────────────────────────────────────────────────────
+
+model JobLog {
+  id               String    @id @default(cuid())
+  postId           String
+  status           JobStatus
+  attempt          Int       @default(1)
+  errorCode        String?
+  errorMessage     String?   @db.Text
+  fbErrorCode      Int?
+  processingTimeMs Int?
+  createdAt        DateTime  @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([status, createdAt])
+  @@map("job_logs")
+}

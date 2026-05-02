@@ -1,0 +1,20 @@
+{
+  "name": "@fb-autopublish/database",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "prisma": "prisma",
+    "generate": "prisma generate --schema=schema.prisma",
+    "migrate": "prisma migrate dev --schema=schema.prisma",
+    "migrate:deploy": "prisma migrate deploy --schema=schema.prisma",
+    "studio": "prisma studio --schema=schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.8.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.8.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,43 @@
+# ── Stage 1: base ─────────────────────────────────────────────────────────────
+FROM node:20-alpine AS base
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+# ── Stage 2: deps ─────────────────────────────────────────────────────────────
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/worker/package.json ./apps/worker/
+COPY packages/database/package.json ./packages/database/
+RUN pnpm install --frozen-lockfile
+
+# ── Stage 3: builder — compile TypeScript only ────────────────────────────────
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/worker/node_modules ./apps/worker/node_modules
+COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
+COPY . .
+
+RUN pnpm --filter database prisma generate
+RUN pnpm --filter worker build
+
+# ── Stage 4: runner ───────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+RUN apk add --no-cache libc6-compat openssl
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 worker
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=builder --chown=worker:nodejs /app/apps/worker/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/worker/node_modules ./apps/worker/node_modules
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/packages/database/schema.prisma ./packages/database/schema.prisma
+
+USER worker
+# No EXPOSE — worker connects outbound only (Redis, MySQL, Facebook API)
+CMD ["node", "dist/index.js"]

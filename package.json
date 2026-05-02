@@ -1,0 +1,17 @@
+{
+  "name": "fb-autopublish",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "worker:dev": "pnpm --filter worker dev",
+    "worker:build": "pnpm --filter worker build",
+    "db:generate": "pnpm --filter database prisma generate",
+    "db:migrate": "pnpm --filter database prisma migrate dev",
+    "db:migrate:deploy": "pnpm --filter database prisma migrate deploy",
+    "db:studio": "pnpm --filter database prisma studio"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
