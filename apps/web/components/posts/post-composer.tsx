@@ -136,100 +136,107 @@ export function PostComposer({ pages }: { pages: PageOption[] }) {
   const isUploading = uploadingFiles.some((f) => f.status === 'uploading')
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-fade-in bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800">
       {/* Page selector */}
-      <div className="space-y-2">
-        <label htmlFor="pageId" className="text-sm font-medium">
-          Facebook Page <span className="text-destructive">*</span>
+      <div className="space-y-2 relative">
+        <label htmlFor="pageId" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          Facebook Page <span className="text-rose-500">*</span>
         </label>
         <select
           id="pageId"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
           defaultValue=""
           onChange={(e) => setValue('pageId', e.target.value, { shouldValidate: true })}
         >
-          <option value="" disabled>Chọn Page...</option>
+          <option value="" disabled>Chọn Page đăng bài...</option>
           {pages.map((page) => (
             <option key={page.id} value={page.id}>{page.name}</option>
           ))}
         </select>
-        {errors.pageId && <p className="text-xs text-destructive">{errors.pageId.message}</p>}
+        {errors.pageId && <p className="text-xs text-rose-500 absolute -bottom-5 left-1">{errors.pageId.message}</p>}
       </div>
 
       {/* Message */}
-      <div className="space-y-2">
-        <label htmlFor="message" className="text-sm font-medium">
-          Nội dung <span className="text-destructive">*</span>
+      <div className="space-y-2 pt-2 relative">
+        <label htmlFor="message" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          Nội dung bài viết <span className="text-rose-500">*</span>
         </label>
         <textarea
           id="message"
           rows={6}
-          placeholder="Viết nội dung bài viết..."
-          className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          placeholder="Bạn đang nghĩ gì? Viết nội dung bài viết vào đây..."
+          className="w-full resize-none rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
           {...register('message')}
         />
-        {errors.message && <p className="text-xs text-destructive">{errors.message.message}</p>}
+        {errors.message && <p className="text-xs text-rose-500 absolute -bottom-5 left-1">{errors.message.message}</p>}
       </div>
 
       {/* Hashtags */}
-      <div className="space-y-2">
-        <label htmlFor="hashtags" className="text-sm font-medium">
+      <div className="space-y-2 pt-2">
+        <label htmlFor="hashtags" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Hashtags
         </label>
-        <input
-          id="hashtags"
-          type="text"
-          placeholder="#marketing #sale #vietnam"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          {...register('hashtags')}
-        />
+        <div className="relative">
+          <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 font-medium">#</span>
+          <input
+            id="hashtags"
+            type="text"
+            placeholder="marketing, sale, vietnam"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 pl-8 pr-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            {...register('hashtags')}
+          />
+        </div>
       </div>
 
       {/* Image upload */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Ảnh đính kèm</label>
-        <ImageUploadZone
-          files={uploadingFiles}
-          onFilesSelected={handleFilesSelected}
-          onRemove={handleRemoveFile}
-          maxFiles={10}
-        />
+      <div className="space-y-2 pt-2">
+        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ảnh đính kèm</label>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30 p-2">
+          <ImageUploadZone
+            files={uploadingFiles}
+            onFilesSelected={handleFilesSelected}
+            onRemove={handleRemoveFile}
+            maxFiles={10}
+          />
+        </div>
         {errors.mediaUrls && (
-          <p className="text-xs text-destructive">{errors.mediaUrls.message}</p>
+          <p className="text-xs text-rose-500 mt-1 ml-1">{errors.mediaUrls.message}</p>
         )}
       </div>
 
       {/* Schedule toggle */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="schedule-toggle"
-            checked={isScheduled}
-            onChange={(e) => {
-              setIsScheduled(e.target.checked)
-              if (!e.target.checked) setValue('scheduledAt', null)
-            }}
-            className="h-4 w-4 rounded border-input"
-          />
-          <label htmlFor="schedule-toggle" className="text-sm font-medium cursor-pointer">
-            Lên lịch đăng
-          </label>
-        </div>
+      <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <label className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <div className="relative flex items-center">
+            <input
+              type="checkbox"
+              checked={isScheduled}
+              onChange={(e) => {
+                setIsScheduled(e.target.checked)
+                if (!e.target.checked) setValue('scheduledAt', null)
+              }}
+              className="peer sr-only"
+            />
+            <div className="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Lên lịch tự động</div>
+            <div className="text-xs text-slate-500 mt-0.5">Hệ thống sẽ tự động đăng bài vào thời gian bạn chọn</div>
+          </div>
+        </label>
 
         {isScheduled && (
-          <div className="space-y-2">
-            <label htmlFor="scheduledAt" className="text-sm font-medium">
-              Thời gian đăng
+          <div className="space-y-2 animate-slide-up pl-1">
+            <label htmlFor="scheduledAt" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Chọn thời gian đăng
             </label>
             <input
               id="scheduledAt"
               type="datetime-local"
               min={new Date(Date.now() + 5 * 60 * 1000).toISOString().slice(0, 16)}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full sm:w-auto block rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               onChange={(e) => {
                 if (!e.target.value) return
-                // Append browser timezone offset — converts "2025-08-01T09:00" → "2025-08-01T09:00:00+07:00"
                 const d = new Date(e.target.value)
                 const offset = -d.getTimezoneOffset()
                 const sign = offset >= 0 ? '+' : '-'
@@ -241,34 +248,43 @@ export function PostComposer({ pages }: { pages: PageOption[] }) {
               }}
             />
             {errors.scheduledAt && (
-              <p className="text-xs text-destructive">{errors.scheduledAt.message}</p>
+              <p className="text-xs text-rose-500">{errors.scheduledAt.message}</p>
             )}
           </div>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={isSubmitting || isUploading}
-          className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isSubmitting
-            ? 'Đang xử lý...'
-            : isUploading
-              ? 'Đang upload ảnh...'
-              : isScheduled
-                ? 'Lên lịch bài viết'
-                : 'Đăng ngay'}
-        </button>
+      <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6">
         <button
           type="button"
           onClick={() => router.back()}
           disabled={isSubmitting}
-          className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
+          className="w-full sm:w-1/3 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-all"
         >
-          Hủy
+          Hủy bỏ
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting || isUploading}
+          className="relative w-full sm:w-2/3 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-70 transition-all group"
+        >
+          {isSubmitting || isUploading ? (
+            <span className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {isSubmitting ? 'Đang xử lý...' : 'Đang tải ảnh lên...'}
+            </span>
+          ) : (
+            <span className="flex items-center justify-center group-hover:scale-[1.02] transition-transform">
+              {isScheduled ? 'Lên lịch bài viết ngay' : 'Đăng bài ngay'}
+              <svg className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </span>
+          )}
         </button>
       </div>
     </form>

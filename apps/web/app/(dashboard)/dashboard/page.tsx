@@ -7,23 +7,46 @@ import { Suspense } from 'react'
 
 export const dynamic = 'force-dynamic'
 
-async function getDashboardStats(userId: string, isSuperAdmin: boolean) {
+async function DashboardStatsData({ userId, isSuperAdmin }: { userId: string, isSuperAdmin: boolean }) {
   const pageFilter = isSuperAdmin
     ? {}
     : { page: { userAccesses: { some: { userId } } } }
 
-  const [pending, scheduled, published, failed] = await Promise.all([
-    prisma.post.count({ where: { status: PostStatus.DRAFT, ...pageFilter } }),
-    prisma.post.count({ where: { status: PostStatus.SCHEDULED, ...pageFilter } }),
-    prisma.post.count({ where: { status: PostStatus.PUBLISHED, ...pageFilter } }),
-    prisma.post.count({ where: { status: PostStatus.FAILED, ...pageFilter } }),
-  ])
+  // Tối ưu DB: Gom 4 lệnh đếm riêng lẻ thành 1 lệnh GroupBy duy nhất
+  const counts = await prisma.post.groupBy({
+    by: ['status'],
+    where: pageFilter,
+    _count: {
+      status: true,
+    },
+  })
 
-  return { pending, scheduled, published, failed }
+  const stats = {
+    pending: 0,
+    scheduled: 0,
+    published: 0,
+    failed: 0,
+  }
+
+  counts.forEach((c) => {
+    if (c.status === PostStatus.DRAFT) stats.pending = c._count.status
+    if (c.status === PostStatus.SCHEDULED) stats.scheduled = c._count.status
+    if (c.status === PostStatus.PUBLISHED) stats.published = c._count.status
+    if (c.status === PostStatus.FAILED) stats.failed = c._count.status
+  })
+
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <StatsCard label="Chờ đăng" value={stats.pending} variant="neutral" />
+      <StatsCard label="Đã lên lịch" value={stats.scheduled} variant="info" />
+      <StatsCard label="Đã đăng" value={stats.published} variant="success" />
+      <StatsCard label="Thất bại" value={stats.failed} variant="danger" />
+    </div>
+  )
 }
 
-async function getRecentPosts(userId: string, isSuperAdmin: boolean) {
-  return prisma.post.findMany({
+async function RecentPostsData({ userId, isSuperAdmin }: { userId: string, isSuperAdmin: boolean }) {
+  const posts = await prisma.post.findMany({
     where: isSuperAdmin ? {} : { page: { userAccesses: { some: { userId } } } },
     orderBy: { createdAt: 'desc' },
     take: 10,
@@ -42,16 +65,13 @@ async function getRecentPosts(userId: string, isSuperAdmin: boolean) {
       },
     },
   })
+
+  return <RecentPostsTable posts={posts} />
 }
 
 export default async function DashboardPage() {
   const session = await requireAuth()
   const isSuperAdmin = session.user.role === 'SUPER_ADMIN'
-
-  const [stats, recentPosts] = await Promise.all([
-    getDashboardStats(session.user.id, isSuperAdmin),
-    getRecentPosts(session.user.id, isSuperAdmin),
-  ])
 
   return (
     <div className="space-y-8 p-6">
@@ -62,16 +82,23 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <Suspense fallback={<div className="grid grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}</div>}>
+      <Suspense fallback={
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatsCard label="Chờ đăng" value={stats.pending} variant="neutral" />
-          <StatsCard label="Đã lên lịch" value={stats.scheduled} variant="info" />
-          <StatsCard label="Đã đăng" value={stats.published} variant="success" />
-          <StatsCard label="Thất bại" value={stats.failed} variant="danger" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+          ))}
         </div>
+      }>
+        <DashboardStatsData userId={session.user.id} isSuperAdmin={isSuperAdmin} />
       </Suspense>
 
-      <RecentPostsTable posts={recentPosts} />
+      <Suspense fallback={
+        <div className="w-full h-64 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse mt-8 flex items-center justify-center">
+          <span className="text-slate-400">Đang tải danh sách bài viết...</span>
+        </div>
+      }>
+        <RecentPostsData userId={session.user.id} isSuperAdmin={isSuperAdmin} />
+      </Suspense>
     </div>
   )
 }

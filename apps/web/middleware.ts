@@ -9,6 +9,10 @@ export default auth((req) => {
   const { nextUrl, auth: session } = req
   const isAuthenticated = !!session?.user
 
+  if (nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', nextUrl))
+  }
+
   if (nextUrl.pathname === '/login') {
     if (isAuthenticated) {
       return NextResponse.redirect(new URL('/dashboard', nextUrl))
